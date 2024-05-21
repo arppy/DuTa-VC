@@ -76,7 +76,7 @@ def generate_mel_LibriTTS(savenum = 200):
         pool.starmap(get_mel, newcommands)
 
 def read_h5():
-    h5_file = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/mels/0.npy'
+    h5_file = '../data/LibriTTS/mels/0.npy'
     hf = h5py.File(h5_file, 'r')
     print(hf.keys())
     n1 = np.array(hf.get('5290_26685_000004_000000'))
@@ -185,10 +185,10 @@ def generate_one_avg_mel_LibriTTS(mfapath, f, datapath, phoneme_list, mels_mode,
     hf_p.close()
 
 def generate_avg_mel_LibriTTS():
-    datapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/mels/'
-    mfapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/textgrids/'
-    pkl_path = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/mels_mode.pkl'
-    savepath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/'
+    datapath = '../data/LibriTTS/mels/'
+    mfapath = '../data/LibriTTS/textgrids/'
+    pkl_path = '../data/LibriTTS/mels_mode.pkl'
+    savepath = '../data/LibriTTS/'
     with open(pkl_path, 'rb') as f:
         mels_mode = pickle.load(f)
     phoneme_list = ['AA0', 'AA1', 'AA2', 'AE0', 'AE1', 'AE2', 'AH0', 'AH1', 'AH2', 'AO0',
@@ -227,8 +227,8 @@ def get_embed(f, datapath, spk_encoder, savepath):
         hf_e.close()
 
 def generate_emb_LibriTTS():
-    datapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/wavs'
-    savepath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/embeds'
+    datapath = '../data/LibriTTS/wavs'
+    savepath = '../data/LibriTTS/embeds'
     os.makedirs(savepath, exist_ok=True)
     # loading speaker encoder
     enc_model_fpath = Path('checkpts/spk_encoder/pretrained.pt')  # speaker encoder path
@@ -255,10 +255,9 @@ def checkfile(i, filepath):
         print(filepath)
         os.remove(filepath)
 
-
 def checkfile_LibriTTS():
     cmds = []
-    datapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/'
+    datapath = '../data/LibriTTS'
     for root, dir, files in os.walk(os.path.join(datapath, 'textgrids')):
         for f in files:
             if f.endswith('.TextGrid'):
@@ -271,7 +270,7 @@ def checkfile_LibriTTS():
 def generate_list_LibriTTS():
     test_speakers = ['1401', '2238', '3723', '4014', '5126',
                      '5322', '587', '6415', '8057', '8534']
-    datapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/'
+    datapath = '../data/LibriTTS'
     os.makedirs(os.path.join(datapath, 'splits'), exist_ok=True)
     train_list = []
     test_list = []
@@ -304,7 +303,7 @@ def generate_list_LibriTTS():
             f.write('\n')
 
 def generate_alllist_LibriTTS():
-    datapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/'
+    datapath = '../data/LibriTTS'
     train_list = []
     for root, dir, files in os.walk(os.path.join(datapath, 'textgrids')):
         for f in files:
@@ -325,8 +324,8 @@ def generate_alllist_LibriTTS():
             f.write('\n')
 
 def cal_avg_phonemetime_LibriTTS():
-    mfapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/textgrids/'
-    savepath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts/'
+    mfapath = '../data/LibriTTS/textgrids/'
+    savepath = '../data/LibriTTS'
     phoneme_list = ['AA0', 'AA1', 'AA2', 'AE0', 'AE1', 'AE2',
                     'AH0', 'AH1', 'AH2', 'AO0', 'AO1', 'AO2', 'AW0',
                     'AW1', 'AW2', 'AY0', 'AY1', 'AY2', 'B', 'CH', 'D', 'DH',
@@ -554,19 +553,19 @@ def cal_mean_std_aty():
 
 if __name__ == "__main__":
     print('test')
-    # copyfile_LibriTTS()
-    # checkfile_LibriTTS()
-    # generate_mel_LibriTTS()
-    # read_h5()
-    # cal_avg_mel()
-    # generate_avg_mel_LibriTTS()
-    # generate_emb_LibriTTS()
-    # generate_list_LibriTTS()
-    # cal_avg_phonemetime_LibriTTS()
+    #copyfile_LibriTTS()
+    checkfile_LibriTTS()
+    #generate_mel_LibriTTS()
+    #read_h5()
+    #cal_avg_mel()
+    #generate_avg_mel_LibriTTS()
+    #generate_emb_LibriTTS()
+    #generate_list_LibriTTS()
+    #cal_avg_phonemetime_LibriTTS()
+    #generate_alllist_LibriTTS()
     # prepare_lab_aty()
-    # generate_alllist_LibriTTS()
     # makedata_aty()
-    load_data_aty()
-    generate_avg_aty()
-    generate_emb_aty()
-    cal_mean_std_aty()
+    # load_data_aty()
+    # generate_avg_aty()
+    # generate_emb_aty()
+    # cal_mean_std_aty()
