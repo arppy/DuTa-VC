@@ -40,9 +40,9 @@ def get_mel(index, savepath, commands):
     hf_w.close()
 
 def generate_mel_LibriTTS(savenum = 200):
-    audiopath = '/data/lmorove1/hwang258/LibriTTS/LibriTTS'
-    textgridpath = '/data/lmorove1/hwang258/LibriTTSCorpusLabel/textgrid'
-    savepath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts'
+    audiopath = '../data/LibriTTS/train-clean-100'
+    textgridpath = '../data/LibriTTS/textgrid'
+    savepath = '../data/LibriTTS'
     os.makedirs(os.path.join(savepath, 'mels'), exist_ok=True)
     os.makedirs(os.path.join(savepath, 'wavs'), exist_ok=True)
     count = 0
@@ -555,8 +555,8 @@ if __name__ == "__main__":
     print('test')
     #copyfile_LibriTTS()
     checkfile_LibriTTS()
-    #generate_mel_LibriTTS()
-    #read_h5()
+    generate_mel_LibriTTS()
+    read_h5()
     #cal_avg_mel()
     #generate_avg_mel_LibriTTS()
     #generate_emb_LibriTTS()
