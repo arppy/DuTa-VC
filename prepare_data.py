@@ -41,7 +41,7 @@ def get_mel(index, savepath, commands):
 
 def generate_mel_LibriTTS(savenum = 200):
     audiopath = '../data/LibriTTS/train-clean-100'
-    textgridpath = '../data/LibriTTS/textgrid'
+    textgridpath = '../data/LibriTTS/textgrids'
     savepath = '../data/LibriTTS'
     os.makedirs(os.path.join(savepath, 'mels'), exist_ok=True)
     os.makedirs(os.path.join(savepath, 'wavs'), exist_ok=True)
@@ -89,7 +89,7 @@ def get_textgrid(textpath, savepath):
 
 def copyfile_LibriTTS():
     audiopath = '/data/lmorove1/hwang258/LibriTTS/LibriTTS'
-    textgridpath = '/data/lmorove1/hwang258/LibriTTSCorpusLabel/textgrid'
+    textgridpath = '/data/lmorove1/hwang258/LibriTTSCorpusLabel/textgrids'
     savepath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts'
     os.makedirs(os.path.join(savepath, 'textgrids'), exist_ok=True)
     count = 0
