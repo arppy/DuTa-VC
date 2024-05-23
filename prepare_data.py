@@ -124,7 +124,7 @@ def cal_avg_mel():
     for j, p in enumerate(phoneme_list):
         phoneme_dict[p] = j
 
-    data_dir = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/data/libristts'
+    data_dir = '../data/LibriTTS/'
     mels_mode_dict = dict()
     lens_dict = dict()
     for p in phoneme_list:
@@ -557,9 +557,9 @@ if __name__ == "__main__":
     checkfile_LibriTTS()
     generate_mel_LibriTTS()
     read_h5()
-    #cal_avg_mel()
-    #generate_avg_mel_LibriTTS()
-    #generate_emb_LibriTTS()
+    cal_avg_mel()
+    generate_avg_mel_LibriTTS()
+    generate_emb_LibriTTS()
     #generate_list_LibriTTS()
     #cal_avg_phonemetime_LibriTTS()
     #generate_alllist_LibriTTS()
