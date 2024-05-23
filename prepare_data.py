@@ -151,7 +151,7 @@ def cal_avg_mel():
     mels_mode = dict()
     for p in phoneme_list:
         if p in mels_mode_dict.keys():
-            mels_mode[p] = mode(np.asarray(mels_mode_dict[p]), 0).mode[0]
+            mels_mode[p] = mode(np.asarray(mels_mode_dict[p]), 0).mode
     del mels_mode_dict
     with open(os.path.join(data_dir, 'mels_mode.pkl'), 'wb') as f:
         pickle.dump(mels_mode, f)
