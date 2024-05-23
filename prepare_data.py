@@ -133,18 +133,20 @@ def cal_avg_mel():
     for root, dir, files in os.walk(os.path.join(data_dir, 'mels')):
         for f in tqdm(files):
             if f.endswith('.npy'):
-                textgrid = os.path.join(root, f).replace('mels', 'textgrids').replace('npy', 'TextGrid')
-                t = tgt.io.read_textgrid(textgrid)
-                m = np.load(os.path.join(root, f))
-                t = t.get_tier_by_name('phones')
-                for i in range(len(t)):
-                    phoneme = t[i].text
-                    start_frame = int(t[i].start_time * 22050.0) // 256
-                    end_frame = int(t[i].end_time * 22050.0) // 256 + 1
-                    if phoneme not in mels_mode_dict.keys():
-                        mels_mode_dict[phoneme] = []
-                    mels_mode_dict[phoneme] += [np.round(np.median(m[:, start_frame:end_frame], 1), 1)]
-                    lens_dict[phoneme] += [end_frame - start_frame]
+                hf = h5py.File(os.path.join(root, f), 'r')
+                for hf_key in hf :
+                    m = np.array(hf.get(hf_key))
+                    textgrid = os.path.join(root, hf_key+'.TextGrid').replace('mels', 'textgrids_nosubdir')
+                    t = tgt.io.read_textgrid(textgrid)
+                    t = t.get_tier_by_name('phones')
+                    for i in range(len(t)):
+                        phoneme = t[i].text
+                        start_frame = int(t[i].start_time * 22050.0) // 256
+                        end_frame = int(t[i].end_time * 22050.0) // 256 + 1
+                        if phoneme not in mels_mode_dict.keys():
+                            mels_mode_dict[phoneme] = []
+                        mels_mode_dict[phoneme] += [np.round(np.median(m[:, start_frame:end_frame], 1), 1)]
+                        lens_dict[phoneme] += [end_frame - start_frame]
 
     mels_mode = dict()
     for p in phoneme_list:
@@ -186,7 +188,7 @@ def generate_one_avg_mel_LibriTTS(mfapath, f, datapath, phoneme_list, mels_mode,
 
 def generate_avg_mel_LibriTTS():
     datapath = '../data/LibriTTS/mels/'
-    mfapath = '../data/LibriTTS/textgrids/'
+    mfapath = '../data/LibriTTS/textgrids_nosubdir/'
     pkl_path = '../data/LibriTTS/mels_mode.pkl'
     savepath = '../data/LibriTTS/'
     with open(pkl_path, 'rb') as f:
