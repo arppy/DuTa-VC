@@ -493,7 +493,7 @@ def generate_avg_aty():
                     np.save(os.path.join(savepath, 'mels_mode', spk, f.replace('.npy', '_avgmel.npy')), m_mode)
 
 
-def get_embed(wav_path, spk_encoder, savepath):
+def get_embed_aty(wav_path, spk_encoder, savepath):
     if not os.path.exists(savepath):
         wav_preprocessed = spk_encoder.preprocess_wav(wav_path)
         embed = spk_encoder.embed_utterance(wav_preprocessed)
@@ -520,7 +520,7 @@ def generate_emb_aty():
     print(len(cmds))
     random.shuffle(cmds)
     for c in tqdm(cmds):
-        get_embed(c[0], c[1], c[2])
+        get_embed_aty(c[0], c[1], c[2])
 
 
 def cal_mean_std_aty():
