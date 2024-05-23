@@ -243,7 +243,7 @@ def generate_emb_LibriTTS():
     print(len(cmds))
     random.shuffle(cmds)
     for c in cmds:
-        get_embed(c[0], c[1], c[2], c[3])
+        get_embed(f=c[0], datapath=c[1], spk_encoder=c[2], savepath=c[3])
     
 def checkfile(i, filepath):
     t = tgt.io.read_textgrid(filepath)
