@@ -11,6 +11,8 @@ import random
 import numpy as np
 import torch
 import tgt
+from tqdm import tqdm
+import h5py
 
 from params import seed as random_seed
 from params import n_mels, train_frames
@@ -57,39 +59,40 @@ class VCEncDataset(torch.utils.data.Dataset):
         self.mel_y_dir = os.path.join(data_dir, 'mels_%s' % avg_type)
 
         self.test_speakers = get_test_speakers()
-        self.speakers = [spk for spk in os.listdir(self.mel_x_dir)
-                         if spk not in self.test_speakers]
         with open(exc_file) as f:
             exceptions = f.readlines()
         self.exceptions = [e.strip() + '_mel.npy' for e in exceptions]
         self.test_info = []
         self.train_info = []
-        for spk in self.speakers:
-            mel_ids = os.listdir(os.path.join(self.mel_x_dir, spk))
-            mel_ids = [m[:-8] for m in mel_ids if m not in self.exceptions]
-            mel_ids = exclude_spn(data_dir, spk, mel_ids)
-            self.train_info += [(m, spk) for m in mel_ids]
-        for spk in self.test_speakers:
-            mel_ids = os.listdir(os.path.join(self.mel_x_dir, spk))
-            mel_ids = [m[:-8] for m in mel_ids]
-            self.test_info += [(m, spk) for m in mel_ids]
+
+        for root, dir, files in os.walk(self.mel_x_dir):
+            for f in tqdm(files):
+                if f.endswith('.npy'):
+                    hf = h5py.File(os.path.join(root, f), 'r')
+                    for mel_id in hf :
+                        spk = mel_id.split("_")[0]
+                        if spk not in self.test_speakers :
+                            self.train_info.append((mel_id, f))
+                        else :
+                            self.test_info.append((mel_id, f))
+
         print("Total number of test wavs is %d." % len(self.test_info))
         print("Total number of training wavs is %d." % len(self.train_info))
         random.seed(random_seed)
         random.shuffle(self.train_info)
 
-    def get_vc_data(self, mel_id, spk):
-        mel_x_path = os.path.join(self.mel_x_dir, spk, mel_id + '_mel.npy')
-        mel_y_path = os.path.join(self.mel_y_dir, spk, mel_id + '_avgmel.npy')
-        mel_x = np.load(mel_x_path)
-        mel_y = np.load(mel_y_path)
-        mel_x = torch.from_numpy(mel_x).float()
-        mel_y = torch.from_numpy(mel_y).float()
+    def get_vc_data(self, mel_id, file_name):
+        mel_x_path = os.path.join(self.mel_x_dir, file_name)
+        mel_y_path = os.path.join(self.mel_y_dir, file_name)
+        hf_x = h5py.File(mel_x_path, 'r')
+        hf_y = h5py.File(mel_y_path, 'r')
+        mel_x = torch.from_numpy(hf_x[mel_id][:]).float()
+        mel_y = torch.from_numpy(hf_y[mel_id][:]).float()
         return (mel_x, mel_y)
 
     def __getitem__(self, index):
-        mel_id, spk = self.train_info[index]
-        mel_x, mel_y = self.get_vc_data(mel_id, spk)
+        mel_id, file_name = self.train_info[index]
+        mel_x, mel_y = self.get_vc_data(mel_id, file_name)
         item = {'x': mel_x, 'y': mel_y}
         return item
 
