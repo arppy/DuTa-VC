@@ -97,8 +97,9 @@ class FastGL(BaseModule):
         for _ in range(n_iters):        
             s = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_size, 
                            win_length=self.n_fft, window=self.window, 
-                           center=True)
-            real_part, imag_part = s.unbind(-1)
+                           center=True, return_complex=True)
+            real_part = s.real
+            imag_part = s.imag
             stftm = torch.sqrt(torch.clamp(real_part**2 + imag_part**2, min=1e-8))
             angles = s / stftm.unsqueeze(-1)
             s = c * (angles + self.momentum * (angles - prev_angles))
