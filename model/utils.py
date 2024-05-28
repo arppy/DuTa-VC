@@ -67,10 +67,11 @@ class InitialReconstruction(BaseModule):
         real_part = torch.ones_like(stftm, device=stftm.device)
         imag_part = torch.zeros_like(stftm, device=stftm.device)
         stft = torch.stack([real_part, imag_part], -1)*stftm.unsqueeze(-1)
-        istft = torch.istft(stft, n_fft=self.n_fft,
+        stft_c = torch.complex(stft[:,:,:,0], stft[:,:,:,1])
+        istft = torch.istft(stft_c, n_fft=self.n_fft,
                            hop_length=self.hop_size, win_length=self.n_fft, 
                            window=self.window, center=True)
-        return istft.unsqueeze(1)
+        return istft
 
 
 # Fast Griffin-Lim algorithm as a PyTorch module
@@ -91,7 +92,6 @@ class FastGL(BaseModule):
     def forward(self, s, n_iters=32):
         c = self.pi(s)
         x = self.ir(c)
-        x = x.squeeze(1)
         c = c.unsqueeze(-1)
         prev_angles = torch.zeros_like(c, device=c.device)
         for _ in range(n_iters):        
@@ -102,7 +102,8 @@ class FastGL(BaseModule):
             stftm = torch.sqrt(torch.clamp(real_part**2 + imag_part**2, min=1e-8))
             angles = s / stftm.unsqueeze(-1)
             s = c * (angles + self.momentum * (angles - prev_angles))
-            x = torch.istft(s, n_fft=self.n_fft, hop_length=self.hop_size,
+            s_c = torch.complex(s[:, :, :, 0], s[:, :, :, 1])
+            x = torch.istft(s_c, n_fft=self.n_fft, hop_length=self.hop_size,
                                             win_length=self.n_fft, window=self.window, 
                                             center=True)
             prev_angles = angles
