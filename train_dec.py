@@ -55,7 +55,7 @@ save_every = 1
 def main(dys):
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
-    log_dir_dys = os.path.join(log_dir, "allspks")
+    log_dir_dys = os.path.join(log_dir, dys)
     os.makedirs(log_dir_dys, exist_ok=True)
 
     print('Initializing data loaders...')
@@ -112,5 +112,5 @@ def main(dys):
         torch.save(ckpt, f=f"{log_dir_dys}/vc.pt")
 
 if __name__ == "__main__":
-    #for spk in allspks:
-    main(allspks)
+    for spk in allspks:
+        main(spk)
