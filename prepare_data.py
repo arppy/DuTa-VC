@@ -75,56 +75,11 @@ def generate_mel_LibriTTS(savenum = 200):
     with multiprocessing.Pool(processes=50) as pool:
         pool.starmap(get_mel, newcommands)
 
-def generate_mel_UASpeech(savenum = 200):
-    audiopath = '../data/UASpeech/audio'
-    textgridpath = '../data/UASpeech/textgrids'
-    savepath = '../data/UASpeech'
-    os.makedirs(os.path.join(savepath, 'mels'), exist_ok=True)
-    os.makedirs(os.path.join(savepath, 'wavs'), exist_ok=True)
-    count = 0
-    debug = False
-    commands = []
-    for root, dir, files in os.walk(textgridpath):
-        for f in tqdm(files):
-            if f.endswith('.TextGrid'):
-                wavpath = os.path.join(root,f).replace(textgridpath,audiopath).replace('TextGrid', 'wav')
-                if os.path.exists(wavpath):
-                    count += 1
-                    commands.append((wavpath, os.path.join(root, f)))
-        if debug:
-            if count > 2000:
-                break
-    print(len(commands))
-    splitnum = len(commands) // 200
-    newcommands = []
-    for i in range(savenum-1):
-        onecommands = []
-        for j in range(splitnum):
-            onecommands.append((commands[i*splitnum+j][0], commands[i*splitnum+j][1]))
-        newcommands.append((i, savepath, onecommands))
-    onecommands = []
-    i = savenum-1
-    for j in range(splitnum):
-        onecommands.append((commands[i*splitnum+j][0], commands[i*splitnum+j][1]))
-    newcommands.append((i, savepath, onecommands))
-
-    with multiprocessing.Pool(processes=50) as pool:
-        pool.starmap(get_mel, newcommands)
-
 def read_h5():
     h5_file = '../data/LibriTTS/mels/0.npy'
     hf = h5py.File(h5_file, 'r')
     print(hf.keys())
     n1 = np.array(hf.get('5290_26685_000004_000000'))
-    print(n1.shape)
-    hf.close()
-
-
-def read_h5_UASpeech():
-    h5_file = '../data/UASpeech/mels/0.npy'
-    hf = h5py.File(h5_file, 'r')
-    print(hf.keys())
-    n1 = np.array(hf.get('M12_B3_CW99_M7'))
     print(n1.shape)
     hf.close()
 
@@ -202,55 +157,6 @@ def cal_avg_mel():
         pickle.dump(mels_mode, f)
     del lens_dict
     return mels_mode
-
-def cal_avg_mel_UASpeech():
-    phoneme_list = ['AA0', 'AA1', 'AA2', 'AE0', 'AE1', 'AE2',
-                    'AH0', 'AH1', 'AH2', 'AO0', 'AO1', 'AO2', 'AW0',
-                    'AW1', 'AW2', 'AY0', 'AY1', 'AY2', 'B', 'CH', 'D', 'DH',
-                    'EH0', 'EH1', 'EH2', 'ER0', 'ER1', 'ER2',
-                    'EY0', 'EY1', 'EY2', 'F', 'G', 'HH', 'IH0', 'IH1', 'IH2',
-                    'IY0', 'IY1', 'IY2', 'JH', 'K', 'L', 'M', 'N', 'NG',
-                    'OW0', 'OW1', 'OW2', 'OY0', 'OY1', 'OY2', 'P',
-                    'R', 'S', 'SH', 'T', 'TH', 'UH0', 'UH1', 'UH2',
-                    'UW0', 'UW1', 'UW2', 'V', 'W', 'Y', 'Z', 'ZH', 'sil', 'sp', 'spn']
-    phoneme_dict = dict()
-    for j, p in enumerate(phoneme_list):
-        phoneme_dict[p] = j
-
-    data_dir = '../data/UASpeech/'
-    mels_mode_dict = dict()
-    lens_dict = dict()
-    for p in phoneme_list:
-        lens_dict[p] = []
-
-    for root, dir, files in os.walk(os.path.join(data_dir, 'mels')):
-        for f in tqdm(files):
-            if f.endswith('.npy'):
-                hf = h5py.File(os.path.join(root, f), 'r')
-                for hf_key in hf :
-                    m = np.array(hf.get(hf_key))
-                    textgrid = os.path.join(root, hf_key+'.TextGrid').replace('mels', 'textgrids_nosubdir')
-                    t = tgt.io.read_textgrid(textgrid)
-                    t = t.get_tier_by_name('phones')
-                    for i in range(len(t)):
-                        phoneme = t[i].text
-                        start_frame = int(t[i].start_time * 22050.0) // 256
-                        end_frame = int(t[i].end_time * 22050.0) // 256 + 1
-                        if phoneme not in mels_mode_dict.keys():
-                            mels_mode_dict[phoneme] = []
-                        mels_mode_dict[phoneme] += [np.round(np.median(m[:, start_frame:end_frame], 1), 1)]
-                        lens_dict[phoneme] += [end_frame - start_frame]
-
-    mels_mode = dict()
-    for p in phoneme_list:
-        if p in mels_mode_dict.keys():
-            mels_mode[p] = mode(np.asarray(mels_mode_dict[p]), 0).mode
-    del mels_mode_dict
-    with open(os.path.join(data_dir, 'mels_mode.pkl'), 'wb') as f:
-        pickle.dump(mels_mode, f)
-    del lens_dict
-    return mels_mode
-
 def generate_one_avg_mel_LibriTTS(mfapath, f, datapath, phoneme_list, mels_mode, savepath):
     h5_file = os.path.join(datapath, f)
     hf = h5py.File(h5_file, 'r')
@@ -308,34 +214,6 @@ def generate_avg_mel_LibriTTS():
     with multiprocessing.Pool(processes=50) as pool:
         pool.starmap(generate_one_avg_mel_LibriTTS, cmds)
 
-def generate_avg_mel_UASpeech():
-    datapath = '../data/UASpeech/mels/'
-    mfapath = '../data/UASpeech/textgrids_nosubdir/'
-    pkl_path = '../data/UASpeech/mels_mode.pkl'
-    savepath = '../data/UASpeech/'
-    with open(pkl_path, 'rb') as f:
-        mels_mode = pickle.load(f)
-    phoneme_list = ['AA0', 'AA1', 'AA2', 'AE0', 'AE1', 'AE2', 'AH0', 'AH1', 'AH2', 'AO0',
-                    'AO1', 'AO2', 'AW0', 'AW1', 'AW2', 'AY0', 'AY1', 'AY2', 'B', 'CH',
-                    'D', 'DH', 'EH0', 'EH1', 'EH2', 'ER0', 'ER1', 'ER2', 'EY0', 'EY1',
-                    'EY2', 'F', 'G', 'HH', 'IH0', 'IH1', 'IH2', 'IY0', 'IY1', 'IY2',
-                    'JH', 'K', 'L', 'M', 'N', 'NG', 'OW0', 'OW1', 'OW2', 'OY0',
-                    'OY1', 'OY2', 'P', 'R', 'S', 'SH', 'T', 'TH', 'UH0', 'UH1',
-                    'UH2', 'UW0', 'UW1', 'UW2', 'V', 'W', 'Y', 'Z', 'ZH', 'sil',
-                    'sp', 'spn']
-    os.makedirs(os.path.join(savepath, 'mels_mode'), exist_ok=True)
-    os.makedirs(os.path.join(savepath, 'phonemes'), exist_ok=True)
-
-    cmds = []
-    count = 0
-    savenum = 200
-    for root, dir, files in os.walk(datapath):
-        for f in tqdm(files):
-            if f.endswith('.npy'):
-                cmds.append((mfapath, f, datapath, phoneme_list, mels_mode, savepath))
-    print(len(cmds))
-    with multiprocessing.Pool(processes=50) as pool:
-        pool.starmap(generate_one_avg_mel_LibriTTS, cmds)
 
 def get_embed(f, datapath, spk_encoder, savepath):
     if not os.path.exists(os.path.join(savepath, f)):
@@ -592,12 +470,10 @@ def get_mel_atypical(wav_path, save_path):
         print(wav_path)
 
 
-def load_data_aty():
-    audiopath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/aty_data/wavs'
-    savepath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/aty_data/'
-    allspks = ['0005', '0006', '0007', '0008', '0009', '0010', '0011', '0012', '0013', '0014',
-        '0015', '0017', '0018', '0019', '0020', '0021', '0022', '0023',
-        '0024', '0025', '0026']
+def generate_mel_UASpeech():
+    audiopath = '../data/UASpeech/audio'
+    savepath = '../data/UASpeech'
+    allspks = ['F02', 'F03', 'F04', 'F05', 'M01', 'M04', 'M05', 'M07', 'M08', 'M09', 'M10', 'M11', 'M12', 'M14', 'M16']
 
     commands = []
     for spk in allspks:
@@ -610,14 +486,12 @@ def load_data_aty():
     with multiprocessing.Pool(processes=40) as pool:
         pool.starmap(get_mel_atypical, commands)
 
+def generate_avg_UASpeech():
+    savepath = '../data/UASpeech/'
+    mfapath = '../data/UASpeech/textgrids'
+    pkl_path = '../data/LibriTTS/mels_mode.pkl'
+    allspks = ['F02', 'F03', 'F04', 'F05', 'M01', 'M04', 'M05', 'M07', 'M08', 'M09', 'M10', 'M11', 'M12', 'M14', 'M16']
 
-def generate_avg_aty():
-    savepath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/aty_data/'
-    mfapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/aty_data/textgrids'
-    pkl_path = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/libritts_data/mels_mode.pkl'
-    allspks = ['0005', '0006', '0007', '0008', '0009', '0010', '0011', '0012', '0013', '0014',
-        '0015', '0017', '0018', '0019', '0020', '0021', '0022', '0023',
-        '0024', '0025', '0026']
     with open(pkl_path, 'rb') as f:
         mels_mode = pickle.load(f)
 
@@ -626,22 +500,24 @@ def generate_avg_aty():
         for root, dir, files in os.walk(os.path.join(savepath, 'mels', spk)):
             for f in files:
                 if f.endswith('.npy'):
-                    textgrid = os.path.join(mfapath, spk, f.replace('.npy', '.TextGrid'))
-                    t = tgt.io.read_textgrid(textgrid)
-                    m = np.load(os.path.join(root, f))
-                    m_mode = np.full((m.shape[0], m.shape[1]), np.log(1e-5))
-                    t = t.get_tier_by_name('phones')
-                    for i in range(len(t)):
-                        phoneme = t[i].text
-                        start_frame = int(t[i].start_time * 22050.0) // 256
-                        end_frame = int(t[i].end_time * 22050.0) // 256 + 1
-                        if end_frame > m_mode.shape[1]:
-                            end_frame = m_mode.shape[1]
-                        print(f, phoneme, m_mode.shape, mels_mode[phoneme].shape, start_frame, end_frame)
-                        m_mode[:, start_frame:end_frame] = np.repeat(np.expand_dims(mels_mode[phoneme], 1),
-                                                                    end_frame - start_frame, 1)
-                    np.save(os.path.join(savepath, 'mels_mode', spk, f.replace('.npy', '_avgmel.npy')), m_mode)
-
+                    try :
+                        textgrid = os.path.join(mfapath, spk, f.replace('.npy', '.TextGrid'))
+                        t = tgt.io.read_textgrid(textgrid)
+                        m = np.load(os.path.join(root, f))
+                        m_mode = np.full((m.shape[0], m.shape[1]), np.log(1e-5))
+                        t = t.get_tier_by_name('phones')
+                        for i in range(len(t)):
+                            phoneme = t[i].text
+                            start_frame = int(t[i].start_time * 22050.0) // 256
+                            end_frame = int(t[i].end_time * 22050.0) // 256 + 1
+                            if end_frame > m_mode.shape[1]:
+                                end_frame = m_mode.shape[1]
+                            print(f, phoneme, m_mode.shape, mels_mode[phoneme].shape, start_frame, end_frame)
+                            m_mode[:, start_frame:end_frame] = np.repeat(np.expand_dims(mels_mode[phoneme], 1),
+                                                                        end_frame - start_frame, 1)
+                        np.save(os.path.join(savepath, 'mels_mode', spk, f.replace('.npy', '_avgmel.npy')), m_mode)
+                    except FileNotFoundError :
+                        print("FileNotFound:",os.path.join(mfapath, spk, f.replace('.npy', '.TextGrid')))
 
 def get_embed_aty(wav_path, spk_encoder, savepath):
     if not os.path.exists(savepath):
@@ -651,11 +527,9 @@ def get_embed_aty(wav_path, spk_encoder, savepath):
         # print(savepath)
 
 def generate_emb_aty():
-    datapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/aty_data/wavs/'
-    savepath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/aty_data/'
-    allspks = ['0005', '0006', '0007', '0008', '0009', '0010', '0011', '0012', '0013', '0014',
-        '0015', '0017', '0018', '0019', '0020', '0021', '0022', '0023',
-        '0024', '0025', '0026']
+    datapath = '../data/UASpeech/audio'
+    savepath = '../data/UASpeech'
+    allspks = ['F02', 'F03', 'F04', 'F05', 'M01', 'M04', 'M05', 'M07', 'M08', 'M09', 'M10', 'M11', 'M12', 'M14', 'M16']
     # loading speaker encoder
     enc_model_fpath = Path('checkpts/spk_encoder/pretrained.pt')  # speaker encoder path
     spk_encoder.load_model(enc_model_fpath, device="cpu")
@@ -673,11 +547,9 @@ def generate_emb_aty():
         get_embed_aty(c[0], c[1], c[2])
 
 
-def cal_mean_std_aty():
-    datapath = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/aty_data/'
-    allspks = ['0005', '0006', '0007', '0008', '0009', '0010', '0011', '0012', '0013', '0014',
-        '0015', '0017', '0018', '0019', '0020', '0021', '0022', '0023',
-        '0024', '0025', '0026']
+def cal_mean_std_UASpeech():
+    datapath = '../data/UASpeech'
+    allspks = ['F02', 'F03', 'F04', 'F05', 'M01', 'M04', 'M05', 'M07', 'M08', 'M09', 'M10', 'M11', 'M12', 'M14', 'M16']
     for spk in allspks:
         os.makedirs(os.path.join(datapath, 'stats', spk), exist_ok=True)
         data_list = []
@@ -708,7 +580,7 @@ if __name__ == "__main__":
     #copyfile_LibriTTS()
     checkfile_LibriTTS()
     generate_mel_LibriTTS()
-    read_h5()
+    #read_h5()
     cal_avg_mel()
     generate_avg_mel_LibriTTS()
     generate_emb_LibriTTS()
@@ -718,11 +590,9 @@ if __name__ == "__main__":
 
     checkfile_UASpeach()
     generate_mel_UASpeech()
-    #read_h5_UASpeech()
-    #cal_avg_mel_UASpeech()
-    #generate_avg_mel_UASpeech()
+    generate_avg_UASpeech()
     generate_emb_UASpeech()
-    generate_list_LibriTTS()
+    cal_mean_std_UASpeech()
 
     #prepare_lab_aty()
     #makedata_aty()
