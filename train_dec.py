@@ -55,7 +55,7 @@ save_every = 1
 def main(dys):
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
-    log_dir_dys = os.path.join(log_dir, dys)
+    log_dir_dys = os.path.join(log_dir, "allspks")
     os.makedirs(log_dir_dys, exist_ok=True)
 
     print('Initializing data loaders...')
