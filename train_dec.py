@@ -40,14 +40,11 @@ beta_max = params.beta_max
 random_seed = params.seed
 test_size = params.test_size
 
-data_dir = '/data/lmorove1/hwang258/Speech-Backbones/DiffVC/aty_data'
+data_dir = '../data/UASpeech/'
 log_dir = 'logs_dec_aty'
-vc_path = 'logs_dec_LT/vc.pt'
-allspks = [
-    '0005', '0006', '0007', '0008', '0009', '0010', '0011', '0012', '0013', 
-    '0014', '0015', '0017', '0018', '0019', '0020', '0021', '0022', '0023',
-    '0024', '0025', '0026'
-    ]
+encoder_path = 'logs_enc/enc.pt'
+#allspks = [ '0005', '0006', '0007', '0008', '0009', '0010', '0011', '0012', '0013', '0014', '0015', '0017', '0018', '0019', '0020', '0021', '0022', '0023', '0024', '0025', '0026']
+allspks = ['F02','F03','F04','F05','M01','M04','M05','M07','M08','M09','M10','M11','M12','M14','M16']
 
 epochs = 40
 batch_size = 32
@@ -71,7 +68,7 @@ def main(dys):
     model = DiffVC(n_mels, channels, filters, heads, layers, kernel,
                    dropout, window_size, enc_dim, spk_dim, use_ref_t,
                    dec_dim, beta_min, beta_max)
-    model.load_state_dict(torch.load(vc_path, map_location='cpu'))
+    model.load_encoder(encoder_path)
     model = model.cuda()
     print('Encoder:')
     print(model.encoder)
@@ -115,5 +112,5 @@ def main(dys):
         torch.save(ckpt, f=f"{log_dir_dys}/vc.pt")
 
 if __name__ == "__main__":
-    for spk in allspks:
-        main(spk)
+    #for spk in allspks:
+    main(allspks)
