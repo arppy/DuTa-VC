@@ -47,6 +47,42 @@ class FwdDiffusion(BaseModule):
         loss = mse_loss(z_output, y, mask, self.n_feats)
         return loss
 
+class FwdDiffusionWithDurationPredictor(BaseModule):
+    def __init__(self, n_feats, channels, filters, heads, layers, kernel,
+                 dropout, window_size, dim):
+        super(FwdDiffusion, self).__init__()
+        self.n_feats = n_feats
+        self.channels = channels
+        self.filters = filters
+        self.heads = heads
+        self.layers = layers
+        self.kernel = kernel
+        self.dropout = dropout
+        self.window_size = window_size
+        self.dim = dim
+        self.encoder = MelEncoder(n_feats, channels, filters, heads, layers,
+                                  kernel, dropout, window_size)
+        self.proj_m = torch.nn.Conv1d(channels, n_feats, 1)
+        self.proj_w = DurationPredictor(channels, filters, kernel, dropout)
+        self.postnet = PostNet(dim)
+
+    @torch.no_grad()
+    def forward(self, x, mask):
+        x, mask = self.relocate_input([x, mask])
+        z = self.encoder(x, mask)
+        mu = self.proj_m(x) * mask
+        x_dp = torch.detach(x)
+        logw = self.proj_w(x_dp, mask)
+        z_output = self.postnet(z, mask)
+        return z_output, logw
+
+    def compute_loss(self, x, y, mask):
+        x, y, mask = self.relocate_input([x, y, mask])
+        z = self.encoder(x, mask)
+        z_output = self.postnet(z, mask)
+        loss = mse_loss(z_output, y, mask, self.n_feats)
+        return loss
+
 
 # the whole voice conversion model consisting of the "average voice" encoder 
 # and the diffusion-based speaker-conditional decoder
@@ -142,3 +178,52 @@ class DiffVC(BaseModule):
         mean_ref = self.encoder(x_ref, x_mask).detach()
         diff_loss = self.decoder.compute_loss(x, x_mask, mean, x_ref, mean_ref, c)
         return diff_loss
+
+
+class LayerNorm(BaseModule):
+    def __init__(self, channels, eps=1e-4):
+        super(LayerNorm, self).__init__()
+        self.channels = channels
+        self.eps = eps
+
+        self.gamma = torch.nn.Parameter(torch.ones(channels))
+        self.beta = torch.nn.Parameter(torch.zeros(channels))
+
+    def forward(self, x):
+        n_dims = len(x.shape)
+        mean = torch.mean(x, 1, keepdim=True)
+        variance = torch.mean((x - mean)**2, 1, keepdim=True)
+
+        x = (x - mean) * torch.rsqrt(variance + self.eps)
+
+        shape = [1, -1] + [1] * (n_dims - 2)
+        x = x * self.gamma.view(*shape) + self.beta.view(*shape)
+        return x
+
+class DurationPredictor(BaseModule):
+    def __init__(self, in_channels, filter_channels, kernel_size, p_dropout):
+        super(DurationPredictor, self).__init__()
+        self.in_channels = in_channels
+        self.filter_channels = filter_channels
+        self.p_dropout = p_dropout
+
+        self.drop = torch.nn.Dropout(p_dropout)
+        self.conv_1 = torch.nn.Conv1d(in_channels, filter_channels,
+                                      kernel_size, padding=kernel_size//2)
+        self.norm_1 = LayerNorm(filter_channels)
+        self.conv_2 = torch.nn.Conv1d(filter_channels, filter_channels,
+                                      kernel_size, padding=kernel_size//2)
+        self.norm_2 = LayerNorm(filter_channels)
+        self.proj = torch.nn.Conv1d(filter_channels, 1, 1)
+
+    def forward(self, x, x_mask):
+        x = self.conv_1(x * x_mask)
+        x = torch.relu(x)
+        x = self.norm_1(x)
+        x = self.drop(x)
+        x = self.conv_2(x * x_mask)
+        x = torch.relu(x)
+        x = self.norm_2(x)
+        x = self.drop(x)
+        x = self.proj(x * x_mask)
+        return x * x_mask
