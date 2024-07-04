@@ -282,3 +282,29 @@ class MelEncoder(BaseModule):
         x = self.encoder(x, x_mask)
         x = self.term_proj(x * x_mask)
         return x
+
+class MelEncoderForDurationPredictor(BaseModule):
+    def __init__(self, n_feats, channels, filters, heads, layers, kernel,
+                 dropout, window_size=None):
+        super(MelEncoder, self).__init__()
+        self.n_feats = n_feats
+        self.channels = channels
+        self.filters = filters
+        self.heads = heads
+        self.layers = layers
+        self.kernel = kernel
+        self.dropout = dropout
+        self.window_size = window_size
+
+        self.init_proj = torch.nn.Conv1d(n_feats, channels, 1)
+        self.prenet = ConvReluNorm(channels, channels, channels,
+                                   kernel_size=5, n_layers=3, p_dropout=0.5)
+
+        self.encoder = Encoder(channels, filters, heads, layers, kernel,
+                               dropout, window_size=window_size)
+
+    def forward(self, x, x_mask):
+        x = self.init_proj(x * x_mask)
+        x = self.prenet(x, x_mask)
+        x = self.encoder(x, x_mask)
+        return x

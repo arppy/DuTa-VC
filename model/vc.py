@@ -9,7 +9,7 @@
 import torch
 
 from model.base import BaseModule
-from model.encoder import MelEncoder
+from model.encoder import MelEncoder, MelEncoderForDurationPredictor
 from model.postnet import PostNet
 from model.diffusion import Diffusion
 from model.utils import sequence_mask, fix_len_compatibility, mse_loss
@@ -49,7 +49,7 @@ class FwdDiffusion(BaseModule):
 
 class FwdDiffusionWithDurationPredictor(BaseModule):
     def __init__(self, n_feats, channels, filters, heads, layers, kernel,
-                 dropout, window_size, dim):
+                 dropout, window_size, dim, filters_dp):
         super(FwdDiffusion, self).__init__()
         self.n_feats = n_feats
         self.channels = channels
@@ -60,26 +60,27 @@ class FwdDiffusionWithDurationPredictor(BaseModule):
         self.dropout = dropout
         self.window_size = window_size
         self.dim = dim
-        self.encoder = MelEncoder(n_feats, channels, filters, heads, layers,
+        self.encoder = MelEncoderForDurationPredictor(n_feats, channels, filters, heads, layers,
                                   kernel, dropout, window_size)
         self.proj_m = torch.nn.Conv1d(channels, n_feats, 1)
-        self.proj_w = DurationPredictor(channels, filters, kernel, dropout)
+        self.proj_w = DurationPredictor(channels, filters_dp, kernel, dropout)
         self.postnet = PostNet(dim)
 
     @torch.no_grad()
     def forward(self, x, mask):
         x, mask = self.relocate_input([x, mask])
         z = self.encoder(x, mask)
-        mu = self.proj_m(x) * mask
-        x_dp = torch.detach(x)
+        mu = self.proj_m(z) * mask
+        z_output = self.postnet(mu, mask)
+        x_dp = torch.detach(z)
         logw = self.proj_w(x_dp, mask)
-        z_output = self.postnet(z, mask)
         return z_output, logw
 
     def compute_loss(self, x, y, mask):
         x, y, mask = self.relocate_input([x, y, mask])
         z = self.encoder(x, mask)
-        z_output = self.postnet(z, mask)
+        mu = self.proj_m(z) * mask
+        z_output = self.postnet(mu, mask)
         loss = mse_loss(z_output, y, mask, self.n_feats)
         return loss
 

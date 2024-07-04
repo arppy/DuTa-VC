@@ -15,6 +15,7 @@ hop_size = 256
 # "average voice" encoder parameters
 channels = 192
 filters = 768
+filters_dp = 256
 layers = 6
 kernel = 3
 dropout = 0.1
