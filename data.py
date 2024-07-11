@@ -57,6 +57,7 @@ class VCEncDataset(torch.utils.data.Dataset):
     def __init__(self, data_dir, exc_file, avg_type):
         self.mel_x_dir = os.path.join(data_dir, 'mels')
         self.mel_y_dir = os.path.join(data_dir, 'mels_%s' % avg_type)
+        self.phoneme_y_dir = os.path.join(data_dir, 'phonemes')
 
         self.test_speakers = get_test_speakers()
         with open(exc_file) as f:
@@ -84,28 +85,32 @@ class VCEncDataset(torch.utils.data.Dataset):
     def get_vc_data(self, mel_id, file_name):
         mel_x_path = os.path.join(self.mel_x_dir, file_name)
         mel_y_path = os.path.join(self.mel_y_dir, file_name)
+        phoneme_y_path = os.path.join(self.phoneme_y_dir, file_name)
         hf_x = h5py.File(mel_x_path, 'r')
         hf_y = h5py.File(mel_y_path, 'r')
+        hf_phoneme_y = h5py.File(phoneme_y_path, 'r')
         mel_x = torch.from_numpy(hf_x[mel_id][:]).float()
         mel_y = torch.from_numpy(hf_y[mel_id][:]).float()
-        return (mel_x, mel_y)
+        phoneme_y = torch.from_numpy(hf_phoneme_y[mel_id][:]).float()
+        item = {'x': mel_x, 'y': mel_y, 'y_phoneme': phoneme_y}
+        return item
 
     def __getitem__(self, index):
         mel_id, file_name = self.train_info[index]
-        mel_x, mel_y = self.get_vc_data(mel_id, file_name)
-        item = {'x': mel_x, 'y': mel_y}
+        vc_data = self.get_vc_data(mel_id, file_name)
+        item = {'x': vc_data['x'], 'y': vc_data['y'], 'y_phoneme': vc_data['y_phoneme']}
         return item
 
     def __len__(self):
         return len(self.train_info)
 
     def get_test_dataset(self):
-        pairs = []
+        items = []
         for i in range(len(self.test_info)):
             mel_id, spk = self.test_info[i]
-            mel_x, mel_y = self.get_vc_data(mel_id, spk)
-            pairs.append((mel_x, mel_y))
-        return pairs
+            vc_data= self.get_vc_data(mel_id, spk)
+            items.append({'x': vc_data['x'], 'y': vc_data['y'], 'y_phoneme': vc_data['y_phoneme']})
+        return items
 
 
 # VCTK dataset for training "average voice" encoder
@@ -171,6 +176,7 @@ class VCEncBatchCollate(object):
         B = len(batch)
         mels_x = torch.zeros((B, n_mels, train_frames), dtype=torch.float32)
         mels_y = torch.zeros((B, n_mels, train_frames), dtype=torch.float32)
+        phonemes_y = torch.zeros((B, n_mels, train_frames), dtype=torch.float32)
         max_starts = [max(item['x'].shape[-1] - train_frames, 0)
                       for item in batch]
         starts = [random.choice(range(m)) if m > 0 else 0 for m in max_starts]
@@ -178,15 +184,17 @@ class VCEncBatchCollate(object):
         for i, item in enumerate(batch):
             mel_x = item['x']
             mel_y = item['y']
+            phoneme_y = item['y_phoneme']
             if mel_x.shape[-1] < train_frames:
                 mel_length = mel_x.shape[-1]
             else:
                 mel_length = train_frames
             mels_x[i, :, :mel_length] = mel_x[:, starts[i]:starts[i] + mel_length]
             mels_y[i, :, :mel_length] = mel_y[:, starts[i]:starts[i] + mel_length]
+            phonemes_y[i, :, :mel_length] = phoneme_y[:, starts[i]:starts[i] + mel_length]
             mel_lengths.append(mel_length)
         mel_lengths = torch.LongTensor(mel_lengths)
-        return {'x': mels_x, 'y': mels_y, 'lengths': mel_lengths}
+        return {'x': mels_x, 'y': mels_y, 'y_phonemes': phonemes_y, 'lengths': mel_lengths}
 
 
 # LibriTTS dataset for training speaker-conditional diffusion-based decoder

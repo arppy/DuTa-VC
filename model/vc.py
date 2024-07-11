@@ -81,6 +81,8 @@ class FwdDiffusionWithDurationPredictor(BaseModule):
         z = self.encoder(x, mask)
         mu = self.proj_m(z) * mask
         z_output = self.postnet(mu, mask)
+        x_dp = torch.detach(z)
+        logw = self.proj_w(x_dp, mask)
         loss = mse_loss(z_output, y, mask, self.n_feats)
         return loss
 

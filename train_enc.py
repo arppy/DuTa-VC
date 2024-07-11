@@ -83,6 +83,7 @@ if __name__ == "__main__":
         losses = []
         for batch in tqdm(train_loader, total=len(train_set)//batch_size):
             mel_x, mel_y = batch['x'].cuda(), batch['y'].cuda()
+            phonemes_y = batch['y_phonemes'].cuda()
             mel_lengths = batch['lengths'].cuda()
             mel_mask = sequence_mask(mel_lengths).unsqueeze(1).to(mel_x.dtype)
 
