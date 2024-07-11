@@ -286,7 +286,7 @@ class MelEncoder(BaseModule):
 class MelEncoderForDurationPredictor(BaseModule):
     def __init__(self, n_feats, channels, filters, heads, layers, kernel,
                  dropout, window_size=None):
-        super(MelEncoder, self).__init__()
+        super(MelEncoderForDurationPredictor, self).__init__()
         self.n_feats = n_feats
         self.channels = channels
         self.filters = filters
