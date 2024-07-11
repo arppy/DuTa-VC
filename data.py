@@ -176,7 +176,7 @@ class VCEncBatchCollate(object):
         B = len(batch)
         mels_x = torch.zeros((B, n_mels, train_frames), dtype=torch.float32)
         mels_y = torch.zeros((B, n_mels, train_frames), dtype=torch.float32)
-        phonemes_y = torch.zeros((B, n_mels, train_frames), dtype=torch.float32)
+        phonemes_y = torch.zeros((B, 1, train_frames), dtype=torch.float32)
         max_starts = [max(item['x'].shape[-1] - train_frames, 0)
                       for item in batch]
         starts = [random.choice(range(m)) if m > 0 else 0 for m in max_starts]
