@@ -50,7 +50,7 @@ class FwdDiffusion(BaseModule):
 class FwdDiffusionWithDurationPredictor(BaseModule):
     def __init__(self, n_feats, channels, filters, heads, layers, kernel,
                  dropout, window_size, dim, filters_dp):
-        super(FwdDiffusion, self).__init__()
+        super(FwdDiffusionWithDurationPredictor, self).__init__()
         self.n_feats = n_feats
         self.channels = channels
         self.filters = filters
