@@ -13,7 +13,7 @@ from model.encoder import MelEncoder, MelEncoderForDurationPredictor
 from model.postnet import PostNet
 from model.diffusion import Diffusion
 from model.utils import sequence_mask, fix_len_compatibility, mse_loss
-
+from model import monotonic_align
 
 # "average voice" encoder as the module parameterizing the diffusion prior
 class FwdDiffusion(BaseModule):
@@ -47,6 +47,10 @@ class FwdDiffusion(BaseModule):
         loss = mse_loss(z_output, y, mask, self.n_feats)
         return loss
 
+def duration_loss(logw, logw_, lengths):
+    loss = torch.sum((logw - logw_)**2) / torch.sum(lengths)
+    return loss
+
 class FwdDiffusionWithDurationPredictor(BaseModule):
     def __init__(self, n_feats, channels, filters, heads, layers, kernel,
                  dropout, window_size, dim, filters_dp):
@@ -76,13 +80,30 @@ class FwdDiffusionWithDurationPredictor(BaseModule):
         logw = self.proj_w(x_dp, mask)
         return z_output, logw
 
-    def compute_loss(self, x, y, mask):
-        x, y, mask = self.relocate_input([x, y, mask])
+    def compute_loss(self, x, y, lengths):
+        x, y, lengths = self.relocate_input([x, y, lengths])
+        mask = sequence_mask(lengths).unsqueeze(1).to(x.dtype)
         z = self.encoder(x, mask)
         mu = self.proj_m(z) * mask
         z_output = self.postnet(mu, mask)
         x_dp = torch.detach(z)
         logw = self.proj_w(x_dp, mask)
+
+        attn_mask = mask.unsqueeze(-1) * mask.unsqueeze(2)
+        with torch.no_grad():
+            const = -0.5 * math.log(2 * math.pi) * self.n_feats
+            factor = -0.5 * torch.ones(mu.shape, dtype=mu.dtype, device=mu.device)
+            y_square = torch.matmul(factor.transpose(1, 2), y ** 2)
+            y_mu_double = torch.matmul(2.0 * (factor * mu).transpose(1, 2), y)
+            mu_square = torch.sum(factor * (mu ** 2), 1).unsqueeze(-1)
+            log_prior = y_square - y_mu_double + mu_square + const
+
+            attn = monotonic_align.maximum_path(log_prior, attn_mask.squeeze(1))
+            attn = attn.detach()
+
+        logw_ = torch.log(1e-8 + torch.sum(attn.unsqueeze(1), -1)) * mask
+        dur_loss = duration_loss(logw, logw_, lengths)
+
         loss = mse_loss(z_output, y, mask, self.n_feats)
         return loss
 
