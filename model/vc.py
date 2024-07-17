@@ -13,7 +13,6 @@ from model.encoder import MelEncoder, MelEncoderForDurationPredictor
 from model.postnet import PostNet
 from model.diffusion import Diffusion
 from model.utils import sequence_mask, fix_len_compatibility, mse_loss
-from model import monotonic_align
 
 # "average voice" encoder as the module parameterizing the diffusion prior
 
