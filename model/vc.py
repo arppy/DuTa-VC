@@ -53,7 +53,7 @@ def duration_loss(logw, logw_, lengths):
 
 class FwdDiffusionWithDurationPredictor(BaseModule):
     def __init__(self, n_feats, channels, filters, heads, layers, kernel,
-                 dropout, window_size, dim, filters_dp):
+                 dropout, window_size, dim, filters_dp, num_class):
         super(FwdDiffusionWithDurationPredictor, self).__init__()
         self.n_feats = n_feats
         self.channels = channels
@@ -67,7 +67,7 @@ class FwdDiffusionWithDurationPredictor(BaseModule):
         self.encoder = MelEncoderForDurationPredictor(n_feats, channels, filters, heads, layers,
                                   kernel, dropout, window_size)
         self.proj_m = torch.nn.Conv1d(channels, n_feats, 1)
-        self.proj_w = DurationPredictor(channels, filters_dp, kernel, dropout)
+        self.proj_w = PhonemePredictor(channels, filters_dp, kernel, dropout, num_class)
         self.postnet = PostNet(dim)
 
     @torch.no_grad()
@@ -224,9 +224,9 @@ class LayerNorm(BaseModule):
         x = x * self.gamma.view(*shape) + self.beta.view(*shape)
         return x
 
-class DurationPredictor(BaseModule):
-    def __init__(self, in_channels, filter_channels, kernel_size, p_dropout):
-        super(DurationPredictor, self).__init__()
+class PhonemePredictor(BaseModule):
+    def __init__(self, in_channels, filter_channels, kernel_size, p_dropout, num_class):
+        super(PhonemePredictor, self).__init__()
         self.in_channels = in_channels
         self.filter_channels = filter_channels
         self.p_dropout = p_dropout
@@ -238,7 +238,7 @@ class DurationPredictor(BaseModule):
         self.conv_2 = torch.nn.Conv1d(filter_channels, filter_channels,
                                       kernel_size, padding=kernel_size//2)
         self.norm_2 = LayerNorm(filter_channels)
-        self.proj = torch.nn.Conv1d(filter_channels, 1, 1)
+        self.proj = torch.nn.Conv1d(filter_channels, num_class, 1)
 
     def forward(self, x, x_mask):
         x = self.conv_1(x * x_mask)

@@ -27,6 +27,7 @@ hop_size = params.hop_size
 channels = params.channels
 filters = params.filters
 filters_dp = params.filters_dp
+num_class = params.num_of_phoneme_class
 layers = params.layers
 kernel = params.kernel
 dropout = params.dropout
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     print('Initializing models...')
     fgl = FastGL(n_mels, sampling_rate, n_fft, hop_size).cuda()
     # model = FwdDiffusion(n_mels, channels, filters, heads, layers, kernel, dropout, window_size, dim).cuda()
-    model = FwdDiffusionWithDurationPredictor(n_mels, channels, filters, heads, layers, kernel, dropout, window_size, dim, filters_dp).cuda()
+    model = FwdDiffusionWithDurationPredictor(n_mels, channels, filters, heads, layers, kernel, dropout, window_size, dim, filters_dp, num_class).cuda()
 
     print('Encoder:')
     print(model)

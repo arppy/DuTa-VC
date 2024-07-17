@@ -22,6 +22,7 @@ dropout = 0.1
 heads = 2
 window_size = 4
 enc_dim = 128
+num_of_phoneme_class = 72
 
 # diffusion-based decoder parameters
 dec_dim = 256
