@@ -176,7 +176,7 @@ class VCEncBatchCollate(object):
         B = len(batch)
         mels_x = torch.zeros((B, n_mels, train_frames), dtype=torch.float32)
         mels_y = torch.zeros((B, n_mels, train_frames), dtype=torch.float32)
-        phonemes_y = torch.zeros((B, 1, train_frames), dtype=torch.float32)
+        phonemes_y = torch.zeros((B, train_frames), dtype=torch.long)
         max_starts = [max(item['x'].shape[-1] - train_frames, 0)
                       for item in batch]
         starts = [random.choice(range(m)) if m > 0 else 0 for m in max_starts]
@@ -191,7 +191,7 @@ class VCEncBatchCollate(object):
                 mel_length = train_frames
             mels_x[i, :, :mel_length] = mel_x[:, starts[i]:starts[i] + mel_length]
             mels_y[i, :, :mel_length] = mel_y[:, starts[i]:starts[i] + mel_length]
-            phonemes_y[i, :, :mel_length] = phoneme_y[starts[i]:starts[i] + mel_length]
+            phonemes_y[i, :mel_length] = phoneme_y[starts[i]:starts[i] + mel_length]
             mel_lengths.append(mel_length)
         mel_lengths = torch.LongTensor(mel_lengths)
         return {'x': mels_x, 'y': mels_y, 'y_phonemes': phonemes_y, 'lengths': mel_lengths}

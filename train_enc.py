@@ -88,7 +88,7 @@ if __name__ == "__main__":
             mel_lengths = batch['lengths'].cuda()
 
             model.zero_grad()
-            loss = model.compute_loss(mel_x, mel_y, mel_lengths)
+            loss = model.compute_loss(mel_x, mel_y, mel_lengths, phonemes_y)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
             optimizer.step()
