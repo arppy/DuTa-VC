@@ -108,8 +108,8 @@ class VCEncDataset(torch.utils.data.Dataset):
         pairs = []
         for i in range(len(self.test_info)):
             mel_id, spk = self.test_info[i]
-            mel_x, mel_y = self.get_vc_data(mel_id, spk)
-            pairs.append((mel_x, mel_y))
+            vc_data = self.get_vc_data(mel_id, spk)
+            pairs.append((vc_data['x'], vc_data['y']))
         return pairs
 
 
