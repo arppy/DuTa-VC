@@ -105,12 +105,12 @@ class VCEncDataset(torch.utils.data.Dataset):
         return len(self.train_info)
 
     def get_test_dataset(self):
-        items = []
+        pairs = []
         for i in range(len(self.test_info)):
             mel_id, spk = self.test_info[i]
-            vc_data= self.get_vc_data(mel_id, spk)
-            items.append({'x': vc_data['x'], 'y': vc_data['y'], 'y_phoneme': vc_data['y_phoneme']})
-        return items
+            mel_x, mel_y = self.get_vc_data(mel_id, spk)
+            pairs.append((mel_x, mel_y))
+        return pairs
 
 
 # VCTK dataset for training "average voice" encoder
