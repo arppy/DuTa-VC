@@ -118,7 +118,7 @@ if __name__ == "__main__":
                 mel_y = mel_y.unsqueeze(0).float().to(device)
                 mel_lengths = torch.LongTensor([mel_x.shape[-1]]).to(device)
                 mel_mask = sequence_mask(mel_lengths).unsqueeze(1).to(mel_x.dtype)
-                mel = model(mel_x, mel_mask)
+                mel, log_w = model(mel_x, mel_mask)
                 save_plot(mel.squeeze().cpu(), f'{log_dir}/generated_{i}.png')
                 audio = fgl(mel)
                 save_audio(f'{log_dir}/generated_{i}.wav', sampling_rate, audio)
