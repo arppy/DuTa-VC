@@ -34,6 +34,7 @@ dropout = params.dropout
 heads = params.heads
 window_size = params.window_size
 dim = params.enc_dim
+device = torch.device('cuda:' + str(params.gpu))
 
 random_seed = params.seed
 test_size = params.test_size
@@ -64,9 +65,9 @@ if __name__ == "__main__":
                               drop_last=True)
 
     print('Initializing models...')
-    fgl = FastGL(n_mels, sampling_rate, n_fft, hop_size).cuda()
-    # model = FwdDiffusion(n_mels, channels, filters, heads, layers, kernel, dropout, window_size, dim).cuda()
-    model = FwdDiffusionWithDurationPredictor(n_mels, channels, filters, heads, layers, kernel, dropout, window_size, dim, filters_dp, num_class).cuda()
+    fgl = FastGL(n_mels, sampling_rate, n_fft, hop_size).to(device)
+    # model = FwdDiffusion(n_mels, channels, filters, heads, layers, kernel, dropout, window_size, dim).to(device)
+    model = FwdDiffusionWithDurationPredictor(n_mels, channels, filters, heads, layers, kernel, dropout, window_size, dim, filters_dp, num_class).to(device)
 
     print('Encoder:')
     print(model)
@@ -83,9 +84,9 @@ if __name__ == "__main__":
         model.train()
         losses = []
         for batch in tqdm(train_loader, total=len(train_set)//batch_size):
-            mel_x, mel_y = batch['x'].cuda(), batch['y'].cuda()
-            phonemes_y = batch['y_phonemes'].cuda()
-            mel_lengths = batch['lengths'].cuda()
+            mel_x, mel_y = batch['x'].to(device), batch['y'].to(device)
+            phonemes_y = batch['y_phonemes'].to(device)
+            mel_lengths = batch['lengths'].to(device)
 
             model.zero_grad()
             loss = model.compute_loss(mel_x, mel_y, mel_lengths, phonemes_y)
@@ -113,9 +114,9 @@ if __name__ == "__main__":
             for i, (mel_x, mel_y) in enumerate(mels):
                 if i >= test_size:
                     break
-                mel_x = mel_x.unsqueeze(0).float().cuda()
-                mel_y = mel_y.unsqueeze(0).float().cuda()
-                mel_lengths = torch.LongTensor([mel_x.shape[-1]]).cuda()
+                mel_x = mel_x.unsqueeze(0).float().to(device)
+                mel_y = mel_y.unsqueeze(0).float().to(device)
+                mel_lengths = torch.LongTensor([mel_x.shape[-1]]).to(device)
                 mel_mask = sequence_mask(mel_lengths).unsqueeze(1).to(mel_x.dtype)
                 mel = model(mel_x, mel_mask)
                 save_plot(mel.squeeze().cpu(), f'{log_dir}/generated_{i}.png')

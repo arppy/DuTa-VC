@@ -6,6 +6,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # MIT License for more details.
 
+gpu=0
+
 # data parameters
 n_mels = 80
 sampling_rate = 22050
