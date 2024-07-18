@@ -75,7 +75,8 @@ class FwdDiffusionWithDurationPredictor(BaseModule):
         z_output = self.postnet(mu, mask)
         x_dp = torch.detach(z)
         logw = self.proj_w(x_dp, mask)
-        return z_output, logw
+        logw_reshaped = logw.permute(0, 2, 1).reshape(-1, logw.shape[1])
+        return z_output, logw_reshaped
 
     def compute_loss(self, x, y, lengths, phonemes):
         x, y, lengths, phonemes = self.relocate_input([x, y, lengths, phonemes])
@@ -85,8 +86,9 @@ class FwdDiffusionWithDurationPredictor(BaseModule):
         z_output = self.postnet(mu, mask)
         x_dp = torch.detach(z)
         logw = self.proj_w(x_dp, mask)
+        logw_reshaped = logw.permute(0, 2, 1).reshape(-1, logw.shape[1])
 
-        phoneme_loss = self.phoneme_loss(logw, phonemes)
+        phoneme_loss = self.phoneme_loss(logw_reshaped, phonemes)
         mel_loss = mse_loss(z_output, y, mask, self.n_feats)
         return mel_loss+phoneme_loss
 

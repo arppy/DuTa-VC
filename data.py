@@ -193,8 +193,9 @@ class VCEncBatchCollate(object):
             mels_y[i, :, :mel_length] = mel_y[:, starts[i]:starts[i] + mel_length]
             phonemes_y[i, :mel_length] = phoneme_y[starts[i]:starts[i] + mel_length]
             mel_lengths.append(mel_length)
+        phonemes_y_reshaped = phonemes_y.reshape(-1)
         mel_lengths = torch.LongTensor(mel_lengths)
-        return {'x': mels_x, 'y': mels_y, 'y_phonemes': phonemes_y, 'lengths': mel_lengths}
+        return {'x': mels_x, 'y': mels_y, 'y_phonemes': phonemes_y_reshaped, 'lengths': mel_lengths}
 
 
 # LibriTTS dataset for training speaker-conditional diffusion-based decoder
