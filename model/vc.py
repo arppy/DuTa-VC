@@ -93,6 +93,47 @@ class FwdDiffusionWithDurationPredictor(BaseModule):
         return mel_loss+phoneme_loss
 
 
+class FwdDiffusionClassifier(BaseModule):
+    def __init__(self, n_feats, channels, filters, heads, layers, kernel,
+                 dropout, window_size, dim, filters_dp, num_class):
+        super(FwdDiffusionClassifier, self).__init__()
+        self.n_feats = n_feats
+        self.channels = channels
+        self.filters = filters
+        self.heads = heads
+        self.layers = layers
+        self.kernel = kernel
+        self.dropout = dropout
+        self.window_size = window_size
+        self.dim = dim
+        self.encoder = MelEncoderForDurationPredictor(n_feats, channels, filters, heads, layers,
+                                  kernel, dropout, window_size)
+        self.proj_w = PhonemePredictor(channels, filters_dp, kernel, dropout, num_class)
+        self.phoneme_loss = torch.nn.CrossEntropyLoss()
+
+    @torch.no_grad()
+    def forward(self, x, mask):
+        x, mask = self.relocate_input([x, mask])
+        z = self.encoder(x, mask)
+        logw = self.proj_w(z, mask)
+        #x_dp = torch.detach(z)
+        #logw = self.proj_w(x_dp, mask)
+        logw_reshaped = logw.permute(0, 2, 1).reshape(-1, logw.shape[1])
+        return logw_reshaped
+
+    def compute_loss(self, x, y, lengths, class_labels):
+        x, y, lengths, class_labels = self.relocate_input([x, y, lengths, class_labels])
+        mask = sequence_mask(lengths).unsqueeze(1).to(x.dtype)
+        z = self.encoder(x, mask)
+        logw = self.proj_w(z, mask)
+        #x_dp = torch.detach(z)
+        #logw = self.proj_w(x_dp, mask)
+        logw_reshaped = logw.permute(0, 2, 1).reshape(-1, logw.shape[1])
+        phoneme_loss = self.phoneme_loss(logw_reshaped, class_labels)
+        return phoneme_loss
+
+
+
 # the whole voice conversion model consisting of the "average voice" encoder 
 # and the diffusion-based speaker-conditional decoder
 class DiffVC(BaseModule):
